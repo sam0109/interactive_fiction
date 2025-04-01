@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tavern Tales</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <h1>🍻 Tavern Tales</h1>
+
+        <div class="main-content">
+            <div class="left-panel">
+                <h2>Character</h2>
+                <label for="character-select">Talk to:</label>
+                <select id="character-select">
+                    <option value="">-- Select a character --</option>
+                    {% for name in character_names %}
+                    <option value="{{ name }}">{{ name }}</option>
+                    {% endfor %}
+                </select>
+                <div class="portrait-container">
+                    <img id="character-portrait" src="" alt="Character Portrait" style="display: none;">
+                    <p id="portrait-placeholder">Select a character to see their portrait.</p>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <h2>Conversation</h2>
+                <div id="chat-box">
+                    <!-- Chat messages will appear here -->
+                </div>
+                <div class="input-area">
+                    <input type="text" id="chat-input" placeholder="What do you say?" disabled>
+                    <button id="send-button" disabled>Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+
+</html>

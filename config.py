@@ -1,7 +1,7 @@
 """Configuration settings for the Interactive Fiction game."""
 
 # LLM Configuration (for utils/llm_api.py)
-MODEL_NAME = "gemini-1.5-flash-latest" # Stable flash model
+MODEL_NAME = "gemini-1.5-flash-latest"  # Stable flash model
 
 GENERATION_CONFIG = {
     "temperature": 0.9,
@@ -18,6 +18,7 @@ SAFETY_SETTINGS = [
 ]
 
 # Game Configuration (for core/game.py)
-MAX_HISTORY = 1000 # Number of turns (player + character) to keep in history
-CHARACTER_DIR = "characters" # Directory containing character definition files
-IMAGE_SAVE_DIR = "generated_images" # Directory to save generated character images 
+MAX_HISTORY = 1000  # Number of turns (player + character) to keep in history
+CHARACTER_DIR = "characters"  # Directory containing character definition files
+# Directory to save generated character images
+IMAGE_SAVE_DIR = "generated_images"

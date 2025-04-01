@@ -1,2 +1,3 @@
-google-generativeai 
-google-cloud-aiplatform 
+google-genai
+Pillow
+Flask 
