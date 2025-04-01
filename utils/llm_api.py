@@ -66,7 +66,7 @@ def generate_image(prompt, character_name):
         model="gemini-2.0-flash-exp-image-generation",
         contents=prompt,
         config=types.GenerateContentConfig(
-            response_modalities=['Text', 'Image']
+            response_modalities=["Text", "Image"]
         )
     )
 
@@ -118,16 +118,18 @@ def generate_response(
   # Construct the scene context (who else is present and brief description)
   scene_context = ""
   if other_character_details:
-    scene_context += "Scene context: Besides you, the following are also in the tavern:\n"
+    scene_context += ("Scene context: Besides you, the following are also in "
+                      "the tavern:\n")
     for char_detail in other_character_details:
-      # Extract a brief part of the description (e.g., first sentence or key phrase)
-      # This is a simple example; more sophisticated extraction could be used.
-      brief_desc = char_detail.get('description', '').split('.')[
-          0]  # Take first sentence
+      # Extract a brief part of the description (e.g., first sentence or key
+      # phrase) This is a simple example; more sophisticated extraction could
+      # be used.
+      brief_desc = char_detail.get("description", "").split(".")[0]
       scene_context += f"- {char_detail.get('name', 'Someone')}: {brief_desc}\n"
     scene_context += "\n"  # Add a newline after scene context
 
-  # Combine character context, scene context, history, and the current player prompt
+  # Combine character context, scene context, history, and the current player
+  # prompt
   full_prompt = f"""{character_context}
 
 {scene_context}{history_string}Player: {prompt}
