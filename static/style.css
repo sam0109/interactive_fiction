@@ -202,3 +202,33 @@ label {
     background-color: #4a9a4a;
     /* Slightly lighter green on hover */
 }
+
+/* Styles for Inventory Display */
+.inventory-container {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #444;
+    /* Separator line */
+}
+
+.inventory-container h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #ccc;
+}
+
+#inventory-content p {
+    margin: 5px 0;
+}
+
+#inventory-items {
+    list-style-type: none;
+    padding-left: 15px;
+    margin-top: 5px;
+}
+
+#inventory-items li {
+    margin-bottom: 3px;
+}
+
+/* End Inventory Styles */

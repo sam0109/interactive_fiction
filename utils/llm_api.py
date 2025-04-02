@@ -37,6 +37,39 @@ else:
       "or configuration failed."
   )
 
+# --- Define Tool Functions (Stubs) ---
+
+
+def give_money_stub(recipient_name: str, amount: int) -> str:
+  """Give a specified amount of money to another character or the player.
+
+  Args:
+      recipient_name: Name of the character or 'Player' receiving the money.
+      amount: The amount of money to give.
+  """
+  # This is just a stub for the API definition.
+  # The actual logic will be handled in web_app.py based on the function call.
+  print(
+    f"[Stub] Called give_money: recipient={recipient_name}, amount={amount}")
+  return f"(Action: Gave {amount} gold to {recipient_name})"
+
+
+def give_item_stub(recipient_name: str, item_name: str) -> str:
+  """Give a specific item from your inventory to another character or the player.
+
+  Args:
+      recipient_name: Name of the character or 'Player' receiving the item.
+      item_name: The name of the item to give.
+  """
+  # This is just a stub for the API definition.
+  print(
+    f"[Stub] Called give_item: recipient={recipient_name}, item={item_name}")
+  return f"(Action: Gave {item_name} to {recipient_name})"
+
+
+# List of function stubs for the API
+api_tools = [give_money_stub, give_item_stub]
+
 
 def generate_image(prompt, character_name):
   """Generates an image using and saves it to be used in the future."""
@@ -61,10 +94,14 @@ def generate_image(prompt, character_name):
   filepath = os.path.join(config.IMAGE_SAVE_DIR, filename)
 
   try:
+    # Add style modifiers to the prompt
+    style_prefix = "Fantasy cartoon style, digital art illustration. "
+    full_image_prompt = style_prefix + prompt
+
     # Generate the image using the client
     response = client.models.generate_content(
         model="gemini-2.0-flash-exp-image-generation",
-        contents=prompt,
+        contents=full_image_prompt,  # Use the modified prompt
         config=types.GenerateContentConfig(
             response_modalities=["Text", "Image"]
         )
@@ -92,85 +129,146 @@ def generate_image(prompt, character_name):
 
 
 def generate_response(
-        prompt, character_context, history=None, other_character_details=None):
-  """Generates a response from the Gemini LLM using the client."""
+        prompt, character_context, history=None,
+        other_character_details=None, character_inventory=None):
+  """Generates a response or function call from the Gemini LLM."""
   if not client:
     print("Error: Gemini client not initialized. Check API Key.")
-    return (
-        "I seem to be at a loss for words right now."
-        "(Client Initialization Error)"
-    )
+    return {"type": "error", "content": "Client Initialization Error"}
 
-  # Construct the history part of the prompt
-  history_string = ""
+  # Construct the history part (for contents argument)
+  content_list = []
   if history:
     for turn in history:
-      role = turn.get("role", "Unknown")
-      text = turn.get("text", "")
-      if role == "Player":
-        history_string += f"Player: {text}\n"
-      elif role == "Character":
-        history_string += f"You: {text}\n"
+      role = turn.get("role")
+      text = turn.get("text")
+      # Map roles to API roles ('user'/'model')
+      api_role = 'user' if role == "Player" else 'model' if role == "Character" else None
+      if api_role:
+        content_list.append(types.Content(
+          role=api_role, parts=[types.Part(text=text)]))
       else:
-        history_string += f"{role}: {text}\n"
-    history_string += "\n"
+        print(f"Warning: Skipping history turn with unknown role: {role}")
+  # Add the current user prompt to contents
+  content_list.append(types.Content(
+    role='user', parts=[types.Part(text=prompt)]))
 
-  # Construct the scene context (who else is present and brief description)
-  scene_context = ""
+  # Construct the SYSTEM INSTRUCTION
+  # Character Context
+  system_instruction_text = f"{character_context}\n"
+  # Scene Context
   if other_character_details:
-    scene_context += ("Scene context: Besides you, the following are also in "
-                      "the tavern:\n")
+    system_instruction_text += "\nScene context: Besides you, the following are also in the tavern:\n"
     for char_detail in other_character_details:
-      # Extract a brief part of the description (e.g., first sentence or key
-      # phrase) This is a simple example; more sophisticated extraction could
-      # be used.
-      brief_desc = char_detail.get("description", "").split(".")[0]
-      scene_context += f"- {char_detail.get('name', 'Someone')}: {brief_desc}\n"
-    scene_context += "\n"  # Add a newline after scene context
-
-  # Combine character context, scene context, history, and the current player
-  # prompt
-  full_prompt = f"""{character_context}
-
-{scene_context}{history_string}Player: {prompt}
-
-You:"""
+      brief_desc = char_detail.get("description", "").split('.')[0]
+      system_instruction_text += f"- {char_detail.get('name', 'Someone')}: {brief_desc}\n"
+  # Inventory Context
+  if character_inventory:
+    system_instruction_text += "\nYour current inventory:\n"
+    system_instruction_text += f"- Money: {character_inventory.get('money', 0)} gold\n"
+    items = character_inventory.get('items', {})
+    if items:
+      system_instruction_text += "- Items:\n"
+      for item, count in items.items():
+        system_instruction_text += f"  - {item} (x{count})\n"
+    else:
+      system_instruction_text += "- Items: (None)\n"
 
   # --- Debug Print ---
-  print("\n" + "-" * 20 + " Sending Prompt to LLM " + "-" * 20)
-  print(full_prompt)
-  print("-" * 20 + " End Prompt " + "-" * 20 + "\n")
+  print("\n" + "-" * 20 + " System Instruction " + "-" * 20)
+  print(system_instruction_text)
+  print("-" * 20 + " End System Instruction " + "-" * 20 + "\n")
+  print("\n" + "-" * 20 + " Sending Contents to LLM " + "-" * 20)
+  print(content_list)
+  print("-" * 20 + " End Contents " + "-" * 20 + "\n")
   # --- End Debug Print ---
 
   try:
-    # Call the Gemini API using the client
+    # Call the Gemini API using system_instruction and contents
     response = client.models.generate_content(
-        model=config.MODEL_NAME,  # Use the model from config
-        contents=full_prompt,
+        model=config.MODEL_NAME,
+        contents=content_list,  # Pass formatted history + current prompt
         config=types.GenerateContentConfig(
+            system_instruction=system_instruction_text,  # Pass system prompt here
+            tools=api_tools,
+            # Explicitly disable auto execution
+            automatic_function_calling={"disable": True},
             safety_settings=config.SAFETY_SETTINGS,
-            **config.GENERATION_CONFIG  # Unpack the dictionary here
+            **config.GENERATION_CONFIG
         )
     )
 
-    # Handle potential safety blocks or empty responses
-    if not response.candidates or not response.candidates[0].content.parts:
-      if response.prompt_feedback.block_reason:
-        print(
-            "Warning: Response blocked due to safety reasons:"
-            f" {response.prompt_feedback.block_reason}"
-        )
-        return ("(I cannot speak of such things -"
-                f" {response.prompt_feedback.block_reason})")
+    # --- Debug Print Relevant Response Parts ---
+    print("\n" + "-" * 20 + " Relevant LLM Response Parts " + "-" * 20)
+    try:
+      if response.candidates:
+        first_candidate = response.candidates[0]
+        print(f"Finish Reason: {first_candidate.finish_reason}")
+        print("Content Parts:")
+        for part in first_candidate.content.parts:
+          if part.text:
+            print(f"  - Text: {part.text.strip()}")
+          # Check for function call within the *main* content parts
+          if part.function_call:
+            print(
+              f"  - Function Call: {part.function_call.name}({dict(part.function_call.args)})")
+        print("Safety Ratings:")
+        for rating in first_candidate.safety_ratings:
+          print(f"  - {rating.category.name}: {rating.probability.name}")
+        # Removed check for automatic_function_calling_history as it's disabled
+        # if response.automatic_function_calling_history:
+        #     print("Function Call History:")
+        #     for call in response.automatic_function_calling_history:
+        #         for part in call.parts:
+        #             if part.function_call:
+        #                 print(
+        #                   f"  - Function Call: {part.function_call.name}({dict(part.function_call.args)})")
       else:
-        print("Warning: Received an empty response from the API.")
-        return "(I... hmm. I seem to have lost my train of thought.)"
+        print("No candidates found in response.")
+      if response.prompt_feedback:
+        print(f"Prompt Feedback: {response.prompt_feedback}")
+    except Exception as e:
+      print(f"Error extracting debug info: {e}")
+      # Fallback to raw if extraction fails
+      print("Raw response was:", response)
+    print("-" * 20 + " End Relevant Response Parts " + "-" * 20 + "\n")
+    # --- End Debug Print ---
 
-    # Success! Return the response.
-    llm_response = response.text.strip()
-    return llm_response
+    # --- Check Response Type ---
+    if not response.candidates:
+      # Handle cases with no candidates (e.g., blocked prompt)
+      if response.prompt_feedback.block_reason:
+        block_reason = response.prompt_feedback.block_reason
+        print(
+          f"Warning: Response blocked due to safety reasons: {block_reason}")
+        return {"type": "text", "content": f"(I cannot speak of such things - {block_reason})"}
+      else:
+        print("Warning: Received an empty response (no candidates) from the API.")
+        return {"type": "text", "content": "(I... hmm. I seem to have lost my train of thought.)"}
+
+    first_candidate = response.candidates[0]
+    # Check for function call directly on the candidate
+    if first_candidate.content.parts[0].function_call:
+      function_call = first_candidate.content.parts[0].function_call
+      print(f"LLM requested function call: {function_call.name}")
+      # --- Debug Print Raw Function Call ---
+      print(f"--> Raw Function Call Object: {function_call}")
+      # --- End Debug Print ---
+      return {
+          "type": "function_call",
+          "name": function_call.name,
+          "args": dict(function_call.args)
+      }
+    # Check for text part
+    elif first_candidate.content.parts[0].text:
+      llm_response = first_candidate.content.parts[0].text.strip()
+      return {"type": "text", "content": llm_response}
+    else:
+      print("Warning: Received unexpected response part format:",
+            first_candidate.content.parts[0])
+      return {"type": "text", "content": "(I seem to be having trouble formulating a response...)"}
 
   except Exception as e:
     # General error handling (consider adding more specific exceptions)
     print(f"An error occurred calling the Gemini API: {e}")
-    return "(My mind feels muddled right now... Try again in a moment.)"
+    return {"type": "error", "content": "(My mind feels muddled right now... Try again in a moment.)"}

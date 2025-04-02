@@ -5,34 +5,42 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatBox = document.getElementById('chat-box');
     const chatInput = document.getElementById('chat-input');
     const sendButton = document.getElementById('send-button');
+    // Inventory elements
+    const inventoryDisplay = document.getElementById('inventory-display');
+    const inventoryLoading = document.getElementById('inventory-loading');
+    const inventoryContent = document.getElementById('inventory-content');
+    const inventoryMoney = document.getElementById('inventory-money');
+    const inventoryItems = document.getElementById('inventory-items');
+    const inventoryError = document.getElementById('inventory-error');
 
     let selectedCharacterName = null;
     let isThinking = false;
+
+    // --- Initial Load ---
+    updatePlayerInventoryDisplay(); // Fetch player inventory on load
 
     // --- Event Listeners ---
     characterSelect.addEventListener('change', async () => {
         selectedCharacterName = characterSelect.value;
         updateCharacterPortrait();
-        clearChat(); // Clear first
+        clearChat();
+        // updateInventoryDisplay(); // REMOVED - No longer updating based on NPC selection
 
         if (selectedCharacterName) {
-            // Fetch history from server
-            chatInput.disabled = true; // Disable input while loading history
+            // Fetch HISTORY for selected character
+            chatInput.disabled = true;
             sendButton.disabled = true;
-            addSystemMessage("Loading history..."); // Indicate loading
+            addSystemMessage("Loading history...");
             try {
                 const response = await fetch(`/history/${encodeURIComponent(selectedCharacterName)}`);
-                clearChat(); // Clear loading message
+                clearChat();
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const history = await response.json();
-
-                // Display loaded history
                 if (history.length > 0) {
-                    console.log("Loading history:", history); // Debug log
+                    console.log("Loading history:", history);
                     history.forEach(msg => {
-                        // Ensure msg has role and text before adding
                         if (msg && msg.role && typeof msg.text !== 'undefined') {
                             addChatMessage(msg.role, msg.text);
                         } else {
@@ -40,22 +48,17 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     });
                 } else {
-                    addSystemMessage(`You approach ${selectedCharacterName}.`); // Show if no history
+                    addSystemMessage(`You approach ${selectedCharacterName}.`);
                 }
-
-                // Enable interaction
                 chatInput.disabled = false;
                 sendButton.disabled = false;
                 chatInput.focus();
-
             } catch (error) {
                 console.error("Error fetching history:", error);
-                clearChat(); // Clear loading message
+                clearChat();
                 addErrorMessage("Error loading conversation history.");
-                // Keep input disabled on error
             }
         } else {
-            // No character selected
             chatInput.disabled = true;
             sendButton.disabled = true;
         }
@@ -84,6 +87,44 @@ document.addEventListener('DOMContentLoaded', () => {
             characterPortrait.style.display = 'none';
             portraitPlaceholder.textContent = 'Select a character to see their portrait.';
             portraitPlaceholder.style.display = 'block';
+        }
+    }
+
+    // Renamed function for clarity
+    async function updatePlayerInventoryDisplay() {
+        // inventoryLoading.style.display = 'block'; // Not needed - player inventory loads initially
+        inventoryContent.style.display = 'none';
+        inventoryError.style.display = 'none';
+        inventoryItems.innerHTML = '<li>(None)</li>';
+        inventoryMoney.textContent = '0';
+
+        try {
+            const response = await fetch(`/player_inventory`); // Fetch from the new route
+            if (!response.ok) {
+                let errorMsg = `HTTP error! status: ${response.status}`;
+                try { const errData = await response.json(); errorMsg = errData.error || errorMsg; } catch (e) { }
+                throw new Error(errorMsg);
+            }
+            const inventory = await response.json();
+
+            inventoryMoney.textContent = inventory.money || 0;
+            inventoryItems.innerHTML = ''; // Clear default
+            if (inventory.items && Object.keys(inventory.items).length > 0) {
+                for (const [item, count] of Object.entries(inventory.items)) {
+                    const li = document.createElement('li');
+                    li.textContent = `${item} (x${count})`;
+                    inventoryItems.appendChild(li);
+                }
+            } else {
+                inventoryItems.innerHTML = '<li>(None)</li>';
+            }
+            inventoryContent.style.display = 'block';
+        } catch (error) {
+            console.error("Error fetching player inventory:", error);
+            inventoryError.textContent = `Error loading your inventory: ${error.message}`;
+            inventoryError.style.display = 'block';
+        } finally {
+            // inventoryLoading.style.display = 'none'; // Not needed
         }
     }
 
@@ -133,14 +174,14 @@ document.addEventListener('DOMContentLoaded', () => {
         addChatMessage('error', text);
     }
 
-    // --- Send Message Logic --- (Server handles history persistence)
+    // --- Send Message Logic ---
     async function sendMessage() {
         const prompt = chatInput.value.trim();
         if (!prompt || !selectedCharacterName || isThinking) {
             return;
         }
 
-        addChatMessage('Player', prompt); // Display user message immediately with correct role
+        addChatMessage('Player', prompt);
         chatInput.value = '';
         isThinking = true;
         sendButton.disabled = true;
@@ -180,6 +221,13 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 const data = await response.json();
                 addChatMessage('Character', data.response);
+
+                // --- Check Server Flag for Inventory Update ---
+                if (data.player_inventory_updated === true) {
+                    console.log("Server indicated player inventory updated, refreshing display...");
+                    updatePlayerInventoryDisplay(); // Update display based on server signal
+                }
+                // --- End Inventory Update Check ---
             }
         } catch (error) {
             console.error("Fetch Error:", error);

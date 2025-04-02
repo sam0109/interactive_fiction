@@ -72,26 +72,93 @@ def chat():
   ]
   # --- End Get Other Details ---
 
-  # --- Debug History ---
-  print("\n" + "-" * 15 + " History being sent to LLM API " + "-" * 15)
-  print(history_to_send)
-  print("-" * 15 + " End History Sent " + "-" * 15 + "\n")
-  # --- End Debug History ---
+  try:
+    # Call the LLM API, passing other character details and current inventory
+    response_data = generate_response(
+        user_prompt,
+        selected_char_obj.context,
+        history_to_send,
+        other_character_details=other_character_details,
+        character_inventory=selected_char_obj.inventory  # Pass current inventory
+    )
 
-  # Call the LLM API, passing other character details
-  llm_response = generate_response(
-      user_prompt,
-      selected_char_obj.context,
-      history_to_send,  # Pass the history *before* the current prompt
-      other_character_details=other_character_details  # Pass details list
-  )
-  # Add LLM response to the stored history
-  current_history.append({"role": "Character", "text": llm_response})
+    final_response_text = ""
+    player_affected = False  # Initialize default value
+    # Default to error if type missing
+    response_type = response_data.get("type", "error")
 
-  # Limit the *stored* history size after adding both messages
-  conversation_histories[character_name] = current_history[-config.MAX_HISTORY:]
+    if response_type == "text":
+      final_response_text = response_data.get(
+          "content", "(Error processing response)")
+      # player_affected remains False for text responses
+    elif response_type == "function_call":
+      func_name = response_data.get("name")
+      func_args = response_data.get("args", {})
+      print(f"---> Received function call: {func_name} with args: {func_args}")
 
-  return jsonify({"response": llm_response})
+      # --- Execute Function Call ---
+      action_result = "(Error executing action)"  # Default error message
+      sender_name = selected_char_obj.name  # The character speaking is the sender
+      recipient_name = func_args.get("recipient_name")
+
+      if not recipient_name:
+        action_result = "(Error: Tool call missing recipient_name)"
+      elif func_name == "give_money":
+        amount = func_args.get("amount")
+        if isinstance(amount, int):
+          action_result = game.transfer_money(
+              sender_name, recipient_name, amount)
+        else:
+          action_result = "(Error: Invalid or missing amount for give_money)"
+      elif func_name == "give_item":
+        item_name = func_args.get("item_name")
+        if item_name:
+          action_result = game.transfer_item(
+              sender_name, recipient_name, item_name)
+        else:
+          action_result = "(Error: Missing item_name for give_item)"
+      else:
+        action_result = f"(Attempted unknown action: {func_name})"
+
+      # Use the result of the action as the response text
+      final_response_text = action_result
+      # --- End Execute Function Call ---
+
+      # --- Determine if player inventory might have changed ---
+      if recipient_name.lower() == "player" and not action_result.startswith(
+              "(Error") and not action_result.startswith("(Cannot"):
+        # If recipient is player and the action didn't obviously fail
+        player_affected = True
+      # --- End Determine Player Affected ---
+
+    elif response_type == "error":
+      final_response_text = response_data.get(
+          "content", "(Unknown LLM error)")
+      print(f"LLM API Error: {final_response_text}")
+      player_affected = False  # Error means no change
+    else:
+      final_response_text = "(Received unexpected response type)"
+      print(f"Unknown response type: {response_type}")
+      player_affected = False  # Unexpected type means no change
+
+    # Add the final text (LLM response or action result) to history
+    current_history.append({"role": "Character", "text": final_response_text})
+
+    # Limit the *stored* history size after adding both messages
+    conversation_histories[character_name] = current_history[-config.MAX_HISTORY:]
+    # Include the flag in the response if player was affected
+    response_payload = {'response': final_response_text}
+    if response_type == "function_call" and player_affected:
+      response_payload['player_inventory_updated'] = True
+
+    return jsonify(response_payload)
+
+  except Exception as e:
+    print(f"Error processing LLM response or function call: {e}")
+    # Log the exception traceback for more detail if needed
+    # import traceback
+    # traceback.print_exc()
+    return jsonify({"error": "Internal server error processing response."}), 500
 
 
 @app.route("/character_image/<character_name>")
@@ -126,6 +193,35 @@ def get_history(character_name):
   else:
     # No history found for this character yet
     return jsonify([])
+
+
+@app.route("/inventory/<character_name>")
+def get_inventory(character_name):
+  """Returns the inventory for a given character."""
+  character = game.get_character_by_name(character_name)
+  if character:
+      # Ensure structure, although load_characters should handle this
+    inventory = character.inventory
+    if "money" not in inventory:
+      inventory["money"] = 0
+    if "items" not in inventory:
+      inventory["items"] = {}
+    return jsonify(inventory)
+  else:
+    # Handle case where character might not be found (though unlikely if name comes from dropdown)
+    return jsonify({"error": "Character not found"}), 404
+
+
+@app.route("/player_inventory")
+def get_player_inventory():
+  """Returns the player's current inventory."""
+  # Ensure structure, although it's initialized in Game.__init__
+  inventory = game.player_inventory
+  if "money" not in inventory:
+    inventory["money"] = 0
+  if "items" not in inventory:
+    inventory["items"] = {}
+  return jsonify(inventory)
 
 
 # --- Run the App ---
