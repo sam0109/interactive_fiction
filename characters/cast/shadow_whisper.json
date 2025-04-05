@@ -5,10 +5,13 @@
         "Whisper",
         "Hooded Figure"
     ],
-    "inventory": [
-        "Smoked Glass Shard",
-        "Sealed Parchment"
-    ],
+    "inventory": {
+        "money": 15,
+        "items": {
+            "smoked_shard_01": 1,
+            "sealed_parchment_01": 1
+        }
+    },
     "public_facts": {
         "description": "A figure seated in the dark corner of a medieval tavern, face completely obscured by the deep hood of a dark, worn cloak. Only shadows are visible within the hood."
     },

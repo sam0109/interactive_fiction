@@ -3,6 +3,7 @@
 import os
 import json
 import re
+import logging
 from typing import List, Optional, Dict, Set
 
 # Import configuration settings
@@ -10,6 +11,8 @@ import config
 
 # Import the interface and data structures
 from .character_db import CharacterDatabase, Character
+
+# from items.item_db import ItemDatabase # No longer needed here
 from thefuzz import process
 
 
@@ -28,7 +31,7 @@ class InMemoryCharacterDB(CharacterDatabase):
                         or contains invalid character data (stops on first error).
         """
         self._characters: Dict[str, Character] = {}
-        print(f"Initializing InMemoryCharacterDB from: {directory_path}")
+        logging.info(f"Initializing InMemoryCharacterDB from: {directory_path}")
 
         if not os.path.isdir(directory_path):
             raise FileNotFoundError(f"Character directory not found: {directory_path}")
@@ -41,7 +44,7 @@ class InMemoryCharacterDB(CharacterDatabase):
                 try:
                     with open(filepath, "r", encoding="utf-8") as f:
                         data = json.load(f)
-                    # Use helper to process and add character
+                    # Use simplified helper (no item_db needed)
                     self._process_and_add_character_data(data)
                     loaded_count += 1
                 except (json.JSONDecodeError, ValueError, TypeError) as e:
@@ -66,11 +69,14 @@ class InMemoryCharacterDB(CharacterDatabase):
         """Creates a database instance from a list of character data dictionaries."""
         db_instance = cls.__new__(cls)  # Create instance without calling __init__
         db_instance._characters = {}
-        print(f"Initializing InMemoryCharacterDB from ({len(character_data)} items)")
+        logging.info(
+            f"Initializing InMemoryCharacterDB from data list ({len(character_data)} items)"
+        )
 
         loaded_count = 0
         for i, data in enumerate(character_data):
             try:
+                # Use simplified helper (no item_db needed)
                 db_instance._process_and_add_character_data(data)
                 loaded_count += 1
             except (ValueError, TypeError) as e:
@@ -90,71 +96,58 @@ class InMemoryCharacterDB(CharacterDatabase):
     # --- Helper Method ---
     def _process_and_add_character_data(self, data: Dict):
         """Parses a character data dictionary and adds the Character to the DB."""
-        # --- Pre-process data for Character initialization ---
-        raw_inventory_list = data.get("inventory", [])
-        private_facts = data.get("private_facts", {})
-        unique_id = data.get("unique_id", "")  # Get ID for validation/adding
-
-        # Build initial inventory dict
-        initial_inventory = {"money": 0, "items": {}}
-        wealth_str = private_facts.get("wealth", "0")
-        match = re.search(r"\d+", wealth_str)
-        if match:
-            initial_inventory["money"] = int(match.group(0))
-        else:
-            pass
-
-        # Parse items
-        temp_items = {}
-        if raw_inventory_list:
-            for item_str in raw_inventory_list:
-                count_match = re.search(r"\(x(\d+)\)$", item_str)
-                if count_match:
-                    item_name = item_str[: count_match.start()].strip()
-                    count = int(count_match.group(1))
-                else:
-                    item_name = item_str.strip()
-                    count = 1
-                if item_name:
-                    temp_items[item_name] = temp_items.get(item_name, 0) + count
-        initial_inventory["items"] = temp_items
-        # --- End Pre-processing ---
-
-        # Ensure names are converted to a set
+        unique_id = data.get("unique_id", "")
         names_list = data.get("names", [])
-        if not isinstance(names_list, list):
-            # Use actual filename if available, otherwise indicate data error
-            source = data.get("_source_file", "input data")
-            raise TypeError(f"Source '{source}': 'names' field must be a list.")
+        public_facts = data.get("public_facts", {})
+        private_facts = data.get("private_facts", {})
+        # Load inventory dict directly from JSON
+        inventory = data.get("inventory", {"money": 0, "items": {}})
 
-        # Create Character object, passing the pre-built inventory
-        # This will perform internal validation via __post_init__
+        # Basic validation of loaded inventory structure
+        source = data.get("_source_file", "input data")
+        if (
+            not isinstance(inventory, dict)
+            or "money" not in inventory
+            or not isinstance(inventory["money"], int)
+            or "items" not in inventory
+            or not isinstance(inventory["items"], dict)
+        ):
+            logging.warning(
+                f"Source '{source}', Character '{unique_id}': Invalid inventory structure found: {inventory}. Defaulting to empty."
+            )
+            inventory = {"money": 0, "items": {}}
+
+        # Ensure names is a list
+        if not isinstance(names_list, list):
+            raise TypeError(
+                f"Source '{source}', Character '{unique_id}': 'names' field must be a list."
+            )
+
+        # Create Character object, passing the loaded inventory
         char = Character(
             unique_id=unique_id,
             names=set(names_list),
-            public_facts=data.get("public_facts", {}),
-            private_facts=private_facts,  # Pass the loaded private facts
-            inventory=initial_inventory,  # Pass the constructed inventory
+            public_facts=public_facts,
+            private_facts=private_facts,
+            inventory=inventory,  # Pass the dict directly
         )
 
-        # --- Set Portrait Path ---
-        # Use unique_id directly for the filename (already safe)
+        # --- Set Portrait Path (Add back after simplification) ---
         image_filename = f"{char.unique_id}.png"
-        # Ensure IMAGE_SAVE_DIR exists in config
         if hasattr(config, "IMAGE_SAVE_DIR"):
             expected_path = os.path.join(config.IMAGE_SAVE_DIR, image_filename)
             if os.path.exists(expected_path):
                 char.portrait_image_path = expected_path
             else:
-                char.portrait_image_path = None  # Explicitly set to None if not found
+                char.portrait_image_path = None
         else:
-            print(
-                "Warning: config.IMAGE_SAVE_DIR not set. Cannot determine portrait paths."
+            logging.warning(
+                "config.IMAGE_SAVE_DIR not set. Cannot determine portrait paths."
             )
             char.portrait_image_path = None
         # --- End Set Portrait Path ---
 
-        # Add character to DB (handles duplicates, name mapping)
+        # Add character to DB
         self._add_character(char)
 
     # --- Core Data Storage and Access ---

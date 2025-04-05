@@ -4,11 +4,14 @@
         "Elenara",
         "Elven Scholar"
     ],
-    "inventory": [
-        "Ancient Tome",
-        "Ink Quill",
-        "Reading Spectacles"
-    ],
+    "inventory": {
+        "money": 20,
+        "items": {
+            "ancient_tome_01": 1,
+            "ink_quill_01": 1,
+            "reading_spectacles_01": 1
+        }
+    },
     "public_facts": {
         "description": "An elegant elf with long, dark hair, wearing simple but refined robes, intently reading a large, ancient book at a table in a medieval tavern. Focused, slightly detached expression."
     },

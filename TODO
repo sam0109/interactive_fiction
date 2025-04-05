@@ -1,0 +1,4 @@
+- Change all print statements to instead use python logging
+- Move the web_app.py file to a better location
+- Rename character to actor to be more general
+- Add different cases of Character, one for an LLM powered AI and one for the Player

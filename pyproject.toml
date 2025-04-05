@@ -23,5 +23,5 @@ dependencies = [
 # Tell setuptools where to find your packages
 [tool.setuptools.packages.find]
 where = ["."] # Look for packages in the root directory
-include = ["characters*"] # Include the 'characters' package and its subpackages
+include = ["characters*", "items*"] # Include packages
 exclude = ["tests*"] # Exclude the tests directory 

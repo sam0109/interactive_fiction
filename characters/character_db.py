@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 PossessionType = str  # Union[str, int] # Example if we used item IDs later
 
 # Type alias for inventory structure
+# Items dict now maps item unique_id (str) to count (int)
 InventoryType = Dict[str, Union[int, Dict[str, int]]]
 
 

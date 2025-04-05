@@ -5,10 +5,13 @@
         "Pip",
         "Halfling Bard"
     ],
-    "inventory": [
-        "Worn Lute",
-        "Ballad Sheet (x3)"
-    ],
+    "inventory": {
+        "money": 5,
+        "items": {
+            "worn_lute_01": 1,
+            "ballad_sheet_01": 3
+        }
+    },
     "public_facts": {
         "description": "A cheerful halfling with curly brown hair, wearing colorful patched clothes, holding a lute in a cozy medieval tavern setting. Smiling brightly."
     },

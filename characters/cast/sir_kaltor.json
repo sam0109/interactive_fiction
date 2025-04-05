@@ -4,10 +4,13 @@
         "Sir Kaltor",
         "Kaltor"
     ],
-    "inventory": [
-        "Whetstone",
-        "Leather Pouch"
-    ],
+    "inventory": {
+        "money": 30,
+        "items": {
+            "whetstone_01": 1,
+            "leather_pouch_01": 1
+        }
+    },
     "public_facts": {
         "description": "A weary-looking knight in worn, scratched plate armor (helmet off), sitting slumped at a wooden table in a medieval tavern, a half-empty mug of ale before him. Tired eyes, maybe a scar."
     },

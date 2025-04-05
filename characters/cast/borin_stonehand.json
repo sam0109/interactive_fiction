@@ -6,10 +6,13 @@
     "Dwarf",
     "Tavern Owner"
   ],
-  "inventory": [
-    "Polishing Rag",
-    "Rusty Key"
-  ],
+  "inventory": {
+    "money": 50,
+    "items": {
+      "polishing_rag_01": 1,
+      "rusty_key_01": 1
+    }
+  },
   "public_facts": {
     "description": "A gruff dwarf with a long, braided brown beard with streaks of grey, wearing a leather apron, polishing a mug inside a dim, medieval tavern."
   },

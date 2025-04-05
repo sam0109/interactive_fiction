@@ -1,0 +1,56 @@
+[
+    {
+        "unique_id": "rusty_dagger_01",
+        "names": [
+            "Rusty Dagger",
+            "Dagger"
+        ],
+        "description": "A simple dagger, pitted with rust but still sharp enough.",
+        "properties": {
+            "type": "weapon",
+            "damage": "1d4",
+            "weight": 0.5,
+            "tags": [
+                "melee",
+                "piercing",
+                "metal"
+            ]
+        }
+    },
+    {
+        "unique_id": "health_potion_01",
+        "names": [
+            "Health Potion",
+            "Red Potion",
+            "Healing Potion"
+        ],
+        "description": "A swirling red liquid in a small vial. Smells faintly of cherries.",
+        "properties": {
+            "type": "potion",
+            "effect": "heal_small",
+            "weight": 0.2,
+            "tags": [
+                "consumable",
+                "magical",
+                "healing"
+            ]
+        }
+    },
+    {
+        "unique_id": "rope_01",
+        "names": [
+            "Rope",
+            "Coil of Rope"
+        ],
+        "description": "About 50 feet of sturdy hempen rope.",
+        "properties": {
+            "type": "tool",
+            "length_ft": 50,
+            "weight": 5,
+            "tags": [
+                "utility",
+                "mundane"
+            ]
+        }
+    }
+]
