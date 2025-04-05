@@ -38,6 +38,7 @@ class Game:
     """Transfers money between characters or player."""
     if amount <= 0:
       return f"(Cannot transfer zero or negative amount)"
+    print(f"Transferring {amount} gold from {sender_name} to {recipient_name}")
 
     # --- Find Sender ---
     sender = self.get_character_by_name(sender_name)
@@ -63,8 +64,13 @@ class Game:
 
     # --- Perform Transfer ---
     sender.inventory["money"] -= amount
-    # Works for dict (player) or Character object access
     recipient["money"] += amount
+    print(f"---> [Inventory Update] Sender ({sender_name}): {sender.inventory}")
+    if recipient_is_player:
+      print(f"---> [Inventory Update] Player: {self.player_inventory}")
+    else:
+      print(
+        f"---> [Inventory Update] Recipient ({recipient_display_name}): {recipient.inventory}")
 
     print(
       f"[Action] {sender.name} gave {amount} gold to {recipient_display_name}")

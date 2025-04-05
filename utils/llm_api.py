@@ -40,7 +40,7 @@ else:
 # --- Define Tool Functions (Stubs) ---
 
 
-def give_money_stub(recipient_name: str, amount: int) -> str:
+def give_money(recipient_name: str, amount: int) -> str:
   """Give a specified amount of money to another character or the player.
 
   Args:
@@ -54,7 +54,7 @@ def give_money_stub(recipient_name: str, amount: int) -> str:
   return f"(Action: Gave {amount} gold to {recipient_name})"
 
 
-def give_item_stub(recipient_name: str, item_name: str) -> str:
+def give_item(recipient_name: str, item_name: str) -> str:
   """Give a specific item from your inventory to another character or the player.
 
   Args:
@@ -68,7 +68,7 @@ def give_item_stub(recipient_name: str, item_name: str) -> str:
 
 
 # List of function stubs for the API
-api_tools = [give_money_stub, give_item_stub]
+api_tools = [give_money, give_item]
 
 
 def generate_image(prompt, character_name):
@@ -234,7 +234,7 @@ def generate_response(
     print("-" * 20 + " End Relevant Response Parts " + "-" * 20 + "\n")
     # --- End Debug Print ---
 
-    # --- Check Response Type ---
+    # --- Check Response Type --- (Revised to handle multiple parts)
     if not response.candidates:
       # Handle cases with no candidates (e.g., blocked prompt)
       if response.prompt_feedback.block_reason:
@@ -247,26 +247,39 @@ def generate_response(
         return {"type": "text", "content": "(I... hmm. I seem to have lost my train of thought.)"}
 
     first_candidate = response.candidates[0]
-    # Check for function call directly on the candidate
-    if first_candidate.content.parts[0].function_call:
-      function_call = first_candidate.content.parts[0].function_call
-      print(f"LLM requested function call: {function_call.name}")
+    # Iterate through all parts to find a function call first
+    found_function_call = None
+    for part in first_candidate.content.parts:
+      if part.function_call:
+        found_function_call = part.function_call
+        break  # Found it, no need to check further parts
+
+    if found_function_call:
+      print(f"LLM requested function call: {found_function_call.name}")
       # --- Debug Print Raw Function Call ---
-      print(f"--> Raw Function Call Object: {function_call}")
+      print(f"--> Raw Function Call Object: {found_function_call}")
       # --- End Debug Print ---
       return {
           "type": "function_call",
-          "name": function_call.name,
-          "args": dict(function_call.args)
+          "name": found_function_call.name,
+          "args": dict(found_function_call.args)
       }
-    # Check for text part
-    elif first_candidate.content.parts[0].text:
-      llm_response = first_candidate.content.parts[0].text.strip()
-      return {"type": "text", "content": llm_response}
     else:
-      print("Warning: Received unexpected response part format:",
-            first_candidate.content.parts[0])
-      return {"type": "text", "content": "(I seem to be having trouble formulating a response...)"}
+      # If no function call found, look for the first text part
+      first_text_part = ""
+      for part in first_candidate.content.parts:
+        if part.text:
+          first_text_part = part.text.strip()
+          break  # Found the first text part
+
+      if first_text_part:
+        return {"type": "text", "content": first_text_part}
+      else:
+        # Handle cases where there's no function call AND no text (unlikely but possible)
+        print(
+            "Warning: Received candidate parts with no function call or text:",
+            first_candidate.content.parts)
+        return {"type": "text", "content": "(I seem to be having trouble formulating a response...)"}
 
   except Exception as e:
     # General error handling (consider adding more specific exceptions)

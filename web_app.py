@@ -106,6 +106,7 @@ def chat():
       elif func_name == "give_money":
         amount = func_args.get("amount")
         if isinstance(amount, int):
+          print(f"---> Attempting to call game.transfer_money for {func_name}")
           action_result = game.transfer_money(
               sender_name, recipient_name, amount)
         else:
@@ -113,6 +114,7 @@ def chat():
       elif func_name == "give_item":
         item_name = func_args.get("item_name")
         if item_name:
+          print(f"---> Attempting to call game.transfer_item for {func_name}")
           action_result = game.transfer_item(
               sender_name, recipient_name, item_name)
         else:
@@ -215,12 +217,13 @@ def get_inventory(character_name):
 @app.route("/player_inventory")
 def get_player_inventory():
   """Returns the player's current inventory."""
-  # Ensure structure, although it's initialized in Game.__init__
   inventory = game.player_inventory
+  # Ensure structure (optional, but safe)
   if "money" not in inventory:
     inventory["money"] = 0
   if "items" not in inventory:
     inventory["items"] = {}
+  print(f"---> [API] Serving Player Inventory: {inventory}")  # Debug print
   return jsonify(inventory)
 
 

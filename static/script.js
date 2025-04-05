@@ -220,14 +220,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 addChatMessage('Character', `(My mind feels muddled right now...)`);
             } else {
                 const data = await response.json();
+                // Display the character response first
                 addChatMessage('Character', data.response);
 
-                // --- Check Server Flag for Inventory Update ---
+                // NOW check the flag and update inventory if needed
                 if (data.player_inventory_updated === true) {
                     console.log("Server indicated player inventory updated, refreshing display...");
-                    updatePlayerInventoryDisplay(); // Update display based on server signal
+                    updatePlayerInventoryDisplay();
                 }
-                // --- End Inventory Update Check ---
             }
         } catch (error) {
             console.error("Fetch Error:", error);
