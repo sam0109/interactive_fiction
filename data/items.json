@@ -1,6 +1,152 @@
 [
     {
+        "unique_id": "polishing_rag_01",
+        "entity_type": "item",
+        "names": [
+            "Polishing Rag",
+            "Rag"
+        ],
+        "description": "A slightly greasy but soft cloth, good for polishing mugs.",
+        "properties": {
+            "type": "tool",
+            "weight": 0.1
+        }
+    },
+    {
+        "unique_id": "rusty_key_01",
+        "entity_type": "item",
+        "names": [
+            "Rusty Key",
+            "Key"
+        ],
+        "description": "An old iron key, covered in rust. What does it open?",
+        "properties": {
+            "type": "key",
+            "weight": 0.1
+        }
+    },
+    {
+        "unique_id": "ancient_tome_01",
+        "entity_type": "item",
+        "names": [
+            "Ancient Tome",
+            "Tome",
+            "Old Book"
+        ],
+        "description": "A heavy, leather-bound book filled with dense script in a forgotten language.",
+        "properties": {
+            "type": "book",
+            "weight": 4.0
+        }
+    },
+    {
+        "unique_id": "ink_quill_01",
+        "entity_type": "item",
+        "names": [
+            "Ink Quill",
+            "Quill Pen"
+        ],
+        "description": "A feathered quill and a small pot of black ink.",
+        "properties": {
+            "type": "tool",
+            "weight": 0.1
+        }
+    },
+    {
+        "unique_id": "reading_spectacles_01",
+        "entity_type": "item",
+        "names": [
+            "Reading Spectacles",
+            "Spectacles",
+            "Glasses"
+        ],
+        "description": "Simple spectacles with brass frames and thick lenses.",
+        "properties": {
+            "type": "tool",
+            "weight": 0.1
+        }
+    },
+    {
+        "unique_id": "worn_lute_01",
+        "entity_type": "item",
+        "names": [
+            "Worn Lute",
+            "Lute"
+        ],
+        "description": "A wooden lute, showing signs of much travel but still capable of a tune.",
+        "properties": {
+            "type": "instrument",
+            "weight": 2.0
+        }
+    },
+    {
+        "unique_id": "ballad_sheet_01",
+        "entity_type": "item",
+        "names": [
+            "Ballad Sheet",
+            "Sheet Music"
+        ],
+        "description": "A piece of parchment with musical notes and verses scribbled on it.",
+        "properties": {
+            "type": "document",
+            "weight": 0.1
+        }
+    },
+    {
+        "unique_id": "smoked_shard_01",
+        "entity_type": "item",
+        "names": [
+            "Smoked Glass Shard",
+            "Smoked Shard",
+            "Dark Glass"
+        ],
+        "description": "A shard of dark, smoked glass. Holding it up slightly dims the light.",
+        "properties": {
+            "type": "tool",
+            "weight": 0.1
+        }
+    },
+    {
+        "unique_id": "sealed_parchment_01",
+        "entity_type": "item",
+        "names": [
+            "Sealed Parchment",
+            "Scroll"
+        ],
+        "description": "A roll of parchment sealed with plain wax.",
+        "properties": {
+            "type": "document",
+            "weight": 0.1
+        }
+    },
+    {
+        "unique_id": "whetstone_01",
+        "entity_type": "item",
+        "names": [
+            "Whetstone"
+        ],
+        "description": "A smooth, grey stone for sharpening blades.",
+        "properties": {
+            "type": "tool",
+            "weight": 0.5
+        }
+    },
+    {
+        "unique_id": "leather_pouch_01",
+        "entity_type": "item",
+        "names": [
+            "Leather Pouch",
+            "Pouch"
+        ],
+        "description": "A simple drawstring pouch made of worn leather.",
+        "properties": {
+            "type": "container",
+            "weight": 0.1
+        }
+    },
+    {
         "unique_id": "rusty_dagger_01",
+        "entity_type": "item",
         "names": [
             "Rusty Dagger",
             "Dagger"
@@ -9,48 +155,7 @@
         "properties": {
             "type": "weapon",
             "damage": "1d4",
-            "weight": 0.5,
-            "tags": [
-                "melee",
-                "piercing",
-                "metal"
-            ]
-        }
-    },
-    {
-        "unique_id": "health_potion_01",
-        "names": [
-            "Health Potion",
-            "Red Potion",
-            "Healing Potion"
-        ],
-        "description": "A swirling red liquid in a small vial. Smells faintly of cherries.",
-        "properties": {
-            "type": "potion",
-            "effect": "heal_small",
-            "weight": 0.2,
-            "tags": [
-                "consumable",
-                "magical",
-                "healing"
-            ]
-        }
-    },
-    {
-        "unique_id": "rope_01",
-        "names": [
-            "Rope",
-            "Coil of Rope"
-        ],
-        "description": "About 50 feet of sturdy hempen rope.",
-        "properties": {
-            "type": "tool",
-            "length_ft": 50,
-            "weight": 5,
-            "tags": [
-                "utility",
-                "mundane"
-            ]
+            "weight": 0.5
         }
     }
 ]

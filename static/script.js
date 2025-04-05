@@ -135,43 +135,48 @@ document.addEventListener('DOMContentLoaded', () => {
     // Only displays messages, history is managed server-side
     function addChatMessage(role, text) {
         const messageDiv = document.createElement('div');
-        messageDiv.classList.add('chat-message');
-        messageDiv.textContent = text; // Default text content
+        messageDiv.classList.add('chat-message'); // Base class
+        let prefix = "";
+        let cssClass = "";
 
-        // Match roles sent by the server ("Player", "Character")
-        switch (role) {
-            case 'Player': // Check for "Player" role from server history
-                messageDiv.classList.add('user-message');
-                messageDiv.textContent = `You: ${text}`;
+        switch (role.toLowerCase()) { // Use lowercase for case-insensitivity
+            case 'player':
+                cssClass = 'user-message';
+                prefix = "You: ";
                 break;
-            case 'Character': // Check for "Character" role from server history
-                messageDiv.classList.add('character-message');
-                // Use current selection for name, fallback if needed
+            case 'character':
+                cssClass = 'character-message';
                 const characterName = selectedCharacterName || 'Character';
-                messageDiv.textContent = `${characterName}: ${text}`;
+                prefix = `${characterName}: `;
                 break;
-            case 'system': // For client-side system messages
-                messageDiv.classList.add('thinking-message');
+            case 'system':
+                cssClass = 'system-message';
+                // No prefix for system messages (like actions, thinking)
                 break;
-            case 'error': // For client-side error messages
-                messageDiv.classList.add('error-message');
+            case 'error':
+                cssClass = 'system-message'; // Use system style
+                prefix = "[Error] "; // Add error prefix
                 break;
             default:
-                console.warn("Unknown chat message role:", role);
-            // Optionally add a default style or prefix
-            // messageDiv.textContent = `${role}: ${text}`;
+                console.warn("Unknown chat message role - styling as System:", role);
+                cssClass = 'system-message'; // Fallback to system style
+                prefix = `[${role}] `; // Use original role as prefix if unknown
         }
+
+        messageDiv.classList.add(cssClass);
+        messageDiv.textContent = `${prefix}${text}`;
 
         chatBox.appendChild(messageDiv);
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
+    // Keep helper functions, they now correctly call addChatMessage with 'System' or 'Error'
     function addSystemMessage(text) {
-        addChatMessage('system', text);
+        addChatMessage('System', text);
     }
 
     function addErrorMessage(text) {
-        addChatMessage('error', text);
+        addChatMessage('Error', text);
     }
 
     // --- Send Message Logic ---
@@ -217,11 +222,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 } catch (e) { /* Ignore */ }
                 console.error("Chat API Error:", response.status, errorText);
                 addErrorMessage(`Error: ${errorText}`);
+                // Display a generic fallback message from the character
                 addChatMessage('Character', `(My mind feels muddled right now...)`);
             } else {
                 const data = await response.json();
-                // Display the character response first
-                addChatMessage('Character', data.response);
+                // Display the character response first (dialogue part)
+                if (data.response) { // Check if dialogue exists
+                    addChatMessage('Character', data.response);
+                }
+
+                // Display the action result separately using the 'System' role
+                if (data.action_result) {
+                    addChatMessage('System', data.action_result); // Use 'System' role
+                }
 
                 // NOW check the flag and update inventory if needed
                 if (data.player_inventory_updated === true) {
@@ -233,7 +246,8 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("Fetch Error:", error);
             const thinkingIndicator = document.getElementById('thinking-indicator');
             if (thinkingIndicator) chatBox.removeChild(thinkingIndicator);
-            addErrorMessage('Error: Could not connect to the server.');
+            addErrorMessage('Could not connect to the server.');
+            // Display a generic fallback message from the character
             addChatMessage('Character', `(My connection seems fuzzy...)`);
         } finally {
             isThinking = false;

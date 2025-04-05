@@ -146,20 +146,23 @@ label {
     align-self: flex-start;
 }
 
-.thinking-message {
+/* Combined style for system, thinking, error, action messages */
+.system-message {
     font-style: italic;
     color: #888;
-    /* Keep thinking/system dim */
     text-align: center;
+    background-color: transparent;
+    align-self: center;
+    /* Remove specific error color, handle in text if needed */
+    /* color: #ff6b6b; */
+    /* Remove other styles inherited from action */
+    padding: 5px 0;
+    /* Simpler padding */
+    margin: 10px auto;
+    max-width: 90%;
+    border: none;
+    box-shadow: none;
 }
-
-.error-message {
-    color: #ff6b6b;
-    /* Brighter red for errors */
-    font-weight: bold;
-    text-align: center;
-}
-
 
 .input-area {
     display: flex;

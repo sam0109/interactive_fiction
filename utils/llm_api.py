@@ -243,70 +243,64 @@ def generate_response(
         print("-" * 20 + " End Relevant Response Parts " + "-" * 20 + "\n")
         # --- End Debug Print ---
 
-        # --- Check Response Type --- (Revised to handle multiple parts)
-        if not response.candidates:
+        # --- Process Response Parts --- (Revised)
+        collected_text = ""
+        function_call_name = None
+        function_call_args = None
+
+        if response.candidates:
+            for part in response.candidates[0].content.parts:
+                if part.text:
+                    collected_text += part.text
+                if part.function_call:
+                    # Assuming only one function call per response for now
+                    if function_call_name is not None:
+                        print(
+                            "Warning: Multiple function calls detected, using the first one."
+                        )
+                    else:
+                        function_call_name = part.function_call.name
+                        # Convert args map to a standard dict
+                        function_call_args = dict(part.function_call.args)
+        else:
             # Handle cases with no candidates (e.g., blocked prompt)
-            if response.prompt_feedback.block_reason:
+            if response.prompt_feedback and response.prompt_feedback.block_reason:
                 block_reason = response.prompt_feedback.block_reason
-                print(
-                    f"Warning: Response blocked due to safety reasons: {block_reason}"
-                )
+                print(f"Warning: Prompt blocked due to {block_reason}")
                 return {
-                    "type": "text",
-                    "content": f"(I cannot speak of such things - {block_reason})",
+                    "type": "error",
+                    "content": f"(Request blocked: {block_reason})",
                 }
             else:
-                print(
-                    "Warning: Received an empty response (no candidates) from the API."
-                )
+                print("Warning: LLM response had no candidates.")
                 return {
-                    "type": "text",
-                    "content": "(I... hmm. I seem to have lost my train of thought.)",
+                    "type": "error",
+                    "content": "(LLM returned no response candidates)",
                 }
 
-        first_candidate = response.candidates[0]
-        # Iterate through all parts to find a function call first
-        found_function_call = None
-        for part in first_candidate.content.parts:
-            if part.function_call:
-                found_function_call = part.function_call
-                break  # Found it, no need to check further parts
-
-        if found_function_call:
-            print(f"LLM requested function call: {found_function_call.name}")
-            # --- Debug Print Raw Function Call ---
-            print(f"--> Raw Function Call Object: {found_function_call}")
-            # --- End Debug Print ---
+        # --- Determine Final Response Structure ---
+        if function_call_name:
+            print(f"LLM requested function call: {function_call_name}")
+            # Debug print raw function call object
+            print(f"--> Raw Function Call Object: {function_call_args}")
+            # Return structure includes text and function call details
             return {
                 "type": "function_call",
-                "name": found_function_call.name,
-                "args": dict(found_function_call.args),
+                "name": function_call_name,
+                "args": function_call_args,
+                "text_content": collected_text.strip(),  # Include collected text
             }
+        elif collected_text:
+            # Normal text response
+            return {"type": "text", "content": collected_text.strip()}
         else:
-            # If no function call found, look for the first text part
-            first_text_part = ""
-            for part in first_candidate.content.parts:
-                if part.text:
-                    first_text_part = part.text.strip()
-                    break  # Found the first text part
-
-            if first_text_part:
-                return {"type": "text", "content": first_text_part}
-            else:
-                # Handle cases where there's no function call AND no text (unlikely but possible)
-                print(
-                    "Warning: Received candidate parts with no function call or text:",
-                    first_candidate.content.parts,
-                )
-                return {
-                    "type": "text",
-                    "content": "(I seem to be having trouble formulating a response...)",
-                }
+            # Should not happen if candidates exist, but handle as error
+            print("Warning: LLM response had candidates but no text or function call.")
+            return {"type": "error", "content": "(LLM returned empty content)"}
 
     except Exception as e:
-        # General error handling (consider adding more specific exceptions)
-        print(f"An error occurred calling the Gemini API: {e}")
-        return {
-            "type": "error",
-            "content": "(My mind feels muddled right now... Try again in a moment.)",
-        }
+        print(f"Error generating response: {e}")
+        # Consider logging the full traceback for debugging
+        # import traceback
+        # traceback.print_exc()
+        return {"type": "error", "content": f"(Error: {e})"}

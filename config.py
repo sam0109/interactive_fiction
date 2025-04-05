@@ -19,6 +19,9 @@ SAFETY_SETTINGS = [
 
 # Game Configuration (for core/game.py)
 MAX_HISTORY = 1000  # Number of turns (player + character) to keep in history
-CHARACTER_DIR = "characters/cast"  # Directory containing character definition files
-# Directory to save generated character images
+
+# List of relative paths from project root to directories containing entity JSON files
+ENTITY_DATA_DIRS = ["data"]
+
+# Directory containing the generated character images
 IMAGE_SAVE_DIR = "generated_images"
