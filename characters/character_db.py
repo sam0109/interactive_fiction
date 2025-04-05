@@ -29,6 +29,9 @@ class Character:
     # Initialized by the loading process before being passed to __init__
     inventory: InventoryType = field(default_factory=lambda: {"money": 0, "items": {}})
 
+    # Optional path to the character's portrait image
+    portrait_image_path: Optional[str] = field(init=False, default=None)
+
     def __post_init__(self):
         """Validate required fields after initialization."""
         # Inventory initialization is now handled *before* calling __init__

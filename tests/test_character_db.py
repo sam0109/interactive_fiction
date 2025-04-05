@@ -286,7 +286,6 @@ def test_get_character_by_added_name(populated_db: CharacterDatabase):
     """Test finding a character by a name added *after* initial loading."""
     char_id_to_modify = "guard_01"
     new_alias = "Gazza"
-    new_alias_lower = new_alias.lower()
 
     # 1. Verify the new name doesn't work initially (optional sanity check)
     char_before = populated_db.get_character_by_name(new_alias)

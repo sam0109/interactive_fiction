@@ -5,6 +5,9 @@ import json
 import re
 from typing import List, Optional, Dict, Set
 
+# Import configuration settings
+import config
+
 # Import the interface and data structures
 from .character_db import CharacterDatabase, Character
 from thefuzz import process
@@ -134,7 +137,24 @@ class InMemoryCharacterDB(CharacterDatabase):
             inventory=initial_inventory,  # Pass the constructed inventory
         )
 
-        # Add character to DB (no name mapping here anymore)
+        # --- Set Portrait Path ---
+        # Use unique_id directly for the filename (already safe)
+        image_filename = f"{char.unique_id}.png"
+        # Ensure IMAGE_SAVE_DIR exists in config
+        if hasattr(config, "IMAGE_SAVE_DIR"):
+            expected_path = os.path.join(config.IMAGE_SAVE_DIR, image_filename)
+            if os.path.exists(expected_path):
+                char.portrait_image_path = expected_path
+            else:
+                char.portrait_image_path = None  # Explicitly set to None if not found
+        else:
+            print(
+                "Warning: config.IMAGE_SAVE_DIR not set. Cannot determine portrait paths."
+            )
+            char.portrait_image_path = None
+        # --- End Set Portrait Path ---
+
+        # Add character to DB (handles duplicates, name mapping)
         self._add_character(char)
 
     # --- Core Data Storage and Access ---
