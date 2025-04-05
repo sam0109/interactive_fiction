@@ -160,7 +160,8 @@ def chat():
     # Log the exception traceback for more detail if needed
     # import traceback
     # traceback.print_exc()
-    return jsonify({"error": "Internal server error processing response."}), 500
+    return jsonify(
+        {"error": "Internal server error processing response."}), 500
 
 
 @app.route("/character_image/<character_name>")

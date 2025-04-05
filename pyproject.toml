@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "interactive_fiction"
+version = "0.1.0"
+description = "A simple text-based interactive fiction game with LLM integration."
+readme = "README.md" # Optional: if you have a README
+license = {text = "MIT"} # Or choose another license
+requires-python = ">=3.8" # Or your minimum required version
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "thefuzz>=0.20",
+    "python-Levenshtein>=0.20" # Optional but recommended for thefuzz performance
+]
+
+# Tell setuptools where to find your packages
+[tool.setuptools.packages.find]
+where = ["."] # Look for packages in the root directory
+include = ["characters*"] # Include the 'characters' package and its subpackages
+exclude = ["tests*"] # Exclude the tests directory 
