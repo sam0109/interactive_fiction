@@ -4,53 +4,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tavern Tales</title>
+    <title>Interactive Fiction</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
     <div class="container">
-        <h1>🍻 Tavern Tales</h1>
+        <h1>Interactive Fiction</h1>
 
         <div class="main-content">
-            <div class="left-panel">
-                <h2>Character</h2>
-                <label for="character-select">Talk to:</label>
-                <select id="character-select">
-                    <option value="">-- Select a character --</option>
-                    {% for name in character_names %}
-                    <option value="{{ name }}">{{ name }}</option>
-                    {% endfor %}
-                </select>
-                <div class="portrait-container">
-                    <img id="character-portrait" src="" alt="Character Portrait" style="display: none;">
-                    <p id="portrait-placeholder">Select a character to see their portrait.</p>
-                </div>
-
-                <!-- Player Inventory Display Area -->
-                <div id="inventory-display" class="inventory-container">
-                    <h3>Your Inventory</h3>
-                    <div id="inventory-content">
-                        <p><strong>Money:</strong> <span id="inventory-money">0</span> gold</p>
-                        <p><strong>Items:</strong></p>
-                        <ul id="inventory-items">
-                            <li>(None)</li>
-                        </ul>
-                    </div>
-                    <p id="inventory-error" class="error-message" style="display: none;"></p>
-                </div>
-                <!-- End Inventory Display Area -->
-
-            </div>
-
-            <div class="right-panel">
-                <h2>Conversation</h2>
+            <div class="game-panel">
+                <h2>Game Log</h2>
                 <div id="chat-box">
-                    <!-- Chat messages will appear here -->
+                    <div class="chat-message system-message">Welcome to the game. What do you do?</div>
                 </div>
                 <div class="input-area">
-                    <input type="text" id="chat-input" placeholder="What do you say?" disabled>
-                    <button id="send-button" disabled>Send</button>
+                    <input type="text" id="chat-input" placeholder="Enter your command...">
+                    <button id="send-button">Send</button>
                 </div>
             </div>
         </div>

@@ -113,5 +113,19 @@
       "internal_description": "You are Sir Kaltor, a knight weary from long travels, nursing an ale at a table in the 'Rusty Flagon'. Your armor is scratched, and your shield leans against the wall. You are quiet, honorable, and speak with a sigh, burdened by duty or past quests. You are wary but polite. Respond only as Sir Kaltor.",
       "wealth": "30 gold coins"
     }
+  },
+  {
+    "unique_id": "player_01",
+    "entity_type": "character",
+    "facts": {
+      "description": "This is you, a curious adventurer."
+    }
+  },
+  {
+    "unique_id": "bartender_bob_01",
+    "entity_type": "character",
+    "facts": {
+      "description": "A large, friendly-looking man with a bald head and a magnificent beard. He seems busy polishing mugs."
+    }
   }
 ]

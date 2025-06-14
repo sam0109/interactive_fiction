@@ -25,3 +25,8 @@ dependencies = [
 where = ["."] # Look for packages in the root directory
 include = ["entities*"] # Include packages
 exclude = ["tests*"] # Exclude the tests directory 
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: marks tests as integration tests (slower, may require network)"
+]

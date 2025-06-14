@@ -1,4 +1,9 @@
-google-genai
-Pillow
 Flask
 pytest
+selenium
+requests
+google-generativeai
+psutil
+werkzeug
+pytest-cov
+coverage

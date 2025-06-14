@@ -28,16 +28,11 @@ class EntityDatabase(ABC):
         pass
 
     @abstractmethod
-    def get_entity_by_name(self, name: str) -> Optional[Entity]:
-        """Finds an entity using a potentially fuzzy name lookup."""
-        pass
-
-    @abstractmethod
     def get_all_entities(self) -> List[Entity]:
-        """Returns a list of all entities currently loaded."""
+        """Returns a list of all entities."""
         pass
 
     @abstractmethod
     def get_entities_by_type(self, entity_type: str) -> List[Entity]:
-        """Returns a list of all entities matching the specified type."""
+        """Returns all entities of a specific type."""
         pass

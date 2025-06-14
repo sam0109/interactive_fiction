@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+After changing any logic which might concievably affect the frontend, run the integration tests using `python3 -m pytest -s -m integration tests/test_integration.py` to ensure the frontend is still working correctly.

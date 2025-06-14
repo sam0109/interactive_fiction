@@ -1,0 +1,26 @@
+[
+    {
+        "unique_id": "tavern_main_room_01",
+        "entity_type": "location",
+        "facts": {
+            "description": "You are in a cozy tavern. A large fireplace crackles in the corner, and the air smells of ale and woodsmoke. A few patrons are scattered about, and a burly bartender polishes mugs behind the bar.",
+            "contains": [
+                "player_01",
+                "bartender_bob_01",
+                "polishing_rag_01",
+                "rusty_key_01"
+            ]
+        }
+    },
+    {
+        "unique_id": "test_room_01",
+        "entity_type": "location",
+        "facts": {
+            "description": "This is a plain, empty room used for testing.",
+            "contains": [
+                "crystal_goblet_01",
+                "silver_spoon_01"
+            ]
+        }
+    }
+] 

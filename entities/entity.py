@@ -1,36 +1,28 @@
-"""Defines the generic Entity data structure."""
+"""
+This module defines the core Entity class, a fundamental data structure
+representing any object, character, or location in the game world.
+"""
 
 from dataclasses import dataclass, field
-from typing import Set, Dict, Any, Optional
+from typing import Dict, Any, Optional, Set
 
 
 @dataclass
 class Entity:
-    """Generic data structure for any entity in the game world."""
+    """
+    Represents a single entity in the game world.
 
+    This class holds the "ground truth" for an entity. All data stored here is
+    considered objective reality within the game. What characters *know* about
+    this entity is managed separately by the KnowledgeManager.
+
+    Attributes:
+        unique_id: A unique identifier for the entity (e.g., "player", "rusty_key_01").
+        entity_type: The type of the entity (e.g., "character", "item", "location").
+        data: A dictionary containing the objective facts and properties of the entity.
+        portrait_image_path: An optional path to a portrait image for the entity.
+    """
     unique_id: str
-    entity_type: str  # e.g., "character", "item", "location"
-    names: Set[str]
-    # Dictionary to hold all other type-specific data
+    entity_type: str
     data: Dict[str, Any] = field(default_factory=dict)
-    # Optional field for image path, managed by the loading process
-    portrait_image_path: Optional[str] = field(init=False, default=None)
-
-    def __post_init__(self):
-        """Basic validation for core fields."""
-        if not self.unique_id:
-            raise ValueError("Entity unique_id cannot be empty.")
-        if not self.entity_type:
-            raise ValueError("Entity entity_type cannot be empty.")
-        if not self.names:
-            # Enforce that names set cannot be empty upon creation
-            raise ValueError("Entity names cannot be empty.")
-        # Basic type checks
-        if not isinstance(self.unique_id, str):
-            raise TypeError("Entity unique_id must be a string.")
-        if not isinstance(self.entity_type, str):
-            raise TypeError("Entity entity_type must be a string.")
-        if not isinstance(self.names, set):
-            raise TypeError("Entity names must be a set.")
-        if not isinstance(self.data, dict):
-            raise TypeError("Entity data must be a dictionary.")
+    portrait_image_path: Optional[str] = None

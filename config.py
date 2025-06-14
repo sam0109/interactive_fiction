@@ -1,5 +1,19 @@
 """Configuration settings for the Interactive Fiction game."""
 
+import json
+import os
+
+# --- API Key Loading ---
+# Load the API key from a private JSON file
+GEMINI_API_KEY = None
+try:
+    with open("keys.json", "r") as f:
+        keys = json.load(f)
+        GEMINI_API_KEY = keys.get("GEMINI_API_KEY")
+except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
+    print(f"Warning: Could not load GEMINI_API_KEY from keys.json: {e}")
+
+
 # LLM Configuration (for utils/llm_api.py)
 MODEL_NAME = "gemini-1.5-flash-latest"  # Stable flash model
 
@@ -25,3 +39,12 @@ ENTITY_DATA_DIRS = ["data"]
 
 # Directory containing the generated character images
 IMAGE_SAVE_DIR = "generated_images"
+
+# --- Entity Loading Settings ---
+# A set of entity types that are considered 'characters' for certain logic.
+CHARACTER_TYPES = {"character"}
+
+# A mapping from entity properties (from JSON) to Entity class attributes.
+# This can be useful for more complex data mappings in the future.
+# Example: {"hit_points": "hp"}
+PROPERTY_MAPPING = {}

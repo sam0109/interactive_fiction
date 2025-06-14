@@ -12,8 +12,6 @@ import config
 from entities.entity_db import EntityDatabase
 from entities.entity import Entity
 
-from thefuzz import process
-
 
 class InMemoryEntityDB(EntityDatabase):
     """Stores and retrieves entity data entirely in memory."""
@@ -140,20 +138,27 @@ class InMemoryEntityDB(EntityDatabase):
         """Parses a dictionary and creates an Entity object, handling common fields."""
         unique_id = data.pop("unique_id", "")
         entity_type = data.pop("entity_type", "")
-        names_list = data.pop("names", [])
+        
+        # The 'facts' dictionary is now the main payload.
+        # We expect it to be present and will pass it directly.
+        facts = data.pop("facts", {})
         source = data.get("_source_file", "input data")
 
-        if not isinstance(names_list, list):
+        if not unique_id or not entity_type:
+            raise ValueError(f"Source '{source}': 'unique_id' and 'entity_type' are required.")
+
+        if not isinstance(facts, dict):
             raise TypeError(
-                f"Source '{source}', Entity '{unique_id}': 'names' field must be a list."
+                f"Source '{source}', Entity '{unique_id}': 'facts' field must be a dictionary."
             )
 
-        # Remaining keys in data dict become the entity's data payload
+        # The 'facts' dictionary from JSON is now the primary data payload for the entity.
+        # Any other top-level keys in the JSON that are not 'unique_id' or 'entity_type'
+        # will also be passed in the 'data' dictionary.
         entity = Entity(
             unique_id=unique_id,
             entity_type=entity_type,
-            names=set(names_list),
-            data=data,  # Pass the remaining data
+            data={**data, **facts},  # Merge facts and any other remaining data
         )
 
         # --- Set Portrait Path (Example for characters) ---
@@ -193,82 +198,10 @@ class InMemoryEntityDB(EntityDatabase):
         """Retrieves an entity by its unique ID."""
         return self._entities.get(entity_id)
 
-    def get_entity_by_name(self, name: str) -> Optional[Entity]:
-        """Looks up an entity by name using fuzzy matching."""
-        if not self._entities:
-            return None
-
-        # Build name map on the fly (could be cached if performance is critical)
-        name_to_id_map: Dict[str, str] = {}
-        ambiguous_names: Set[str] = set()
-        for entity in self._entities.values():
-            for entity_name in entity.names:
-                lower_name = entity_name.lower()
-                if (
-                    lower_name in name_to_id_map
-                    and name_to_id_map[lower_name] != entity.unique_id
-                ):
-                    # Mark name as ambiguous if multiple entities share it
-                    ambiguous_names.add(lower_name)
-                # Only map if not already ambiguous (or if first time seeing it)
-                if lower_name not in ambiguous_names:
-                    name_to_id_map[lower_name] = entity.unique_id
-                elif lower_name in name_to_id_map:  # Was unique, now ambiguous
-                    del name_to_id_map[lower_name]  # Remove unique mapping
-
-        if not name_to_id_map and not ambiguous_names:
-            return None  # No names registered
-
-        lookup_name = name.lower()
-
-        # Check for exact, non-ambiguous match first
-        if lookup_name in name_to_id_map:  # It must be non-ambiguous if in this map
-            exact_match_id = name_to_id_map[lookup_name]
-            return self._entities.get(exact_match_id)
-
-        # If exact match fails or is ambiguous, proceed to fuzzy matching
-        # Consider all names, including ambiguous ones, for fuzzy matching
-        all_known_names_for_fuzzy: List[str] = []
-        temp_map_for_fuzzy: Dict[str, str] = {}
-        for entity in self._entities.values():
-            for entity_name in entity.names:
-                lower_name = entity_name.lower()
-                all_known_names_for_fuzzy.append(lower_name)
-                # Store the *first* ID encountered for a name for fuzzy lookup
-                if lower_name not in temp_map_for_fuzzy:
-                    temp_map_for_fuzzy[lower_name] = entity.unique_id
-
-        if not all_known_names_for_fuzzy:
-            return None
-
-        best_match, score = process.extractOne(lookup_name, all_known_names_for_fuzzy)
-
-        match_threshold = 75  # Adjust threshold as needed
-
-        if score >= match_threshold:
-            # Get the ID associated with the best fuzzy match (could be ambiguous)
-            matched_id = temp_map_for_fuzzy.get(best_match)
-            if matched_id:
-                if best_match in ambiguous_names:
-                    logging.warning(
-                        "Fuzzy match '%s' for '%s' is ambiguous. "
-                        "Returning one possibility (%s).",
-                        best_match,
-                        name,
-                        matched_id,
-                    )
-                return self._entities.get(matched_id)
-
-        return None  # No good match found
-
     def get_all_entities(self) -> List[Entity]:
-        """Returns a list of all loaded entities."""
+        """Returns a list of all entities in the database."""
         return list(self._entities.values())
 
     def get_entities_by_type(self, entity_type: str) -> List[Entity]:
-        """Returns a list of all entities matching the specified type."""
-        return [
-            entity
-            for entity in self._entities.values()
-            if entity.entity_type.lower() == entity_type.lower()
-        ]
+        """Returns a list of all entities of a given type."""
+        return [e for e in self._entities.values() if e.entity_type == entity_type]
