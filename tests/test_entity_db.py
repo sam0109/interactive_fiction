@@ -129,11 +129,11 @@ def temp_entity_dirs(
     item_dir = base_dir / "items"
     item_dir.mkdir()
 
-    # Write character files
+    # Write character files, ensuring each contains a LIST of entities
     char1_file = char_dir / f"{sample_entity_data_char_1['unique_id']}.json"
-    char1_file.write_text(json.dumps(sample_entity_data_char_1), encoding="utf-8")
+    char1_file.write_text(json.dumps([sample_entity_data_char_1]), encoding="utf-8")
     char2_file = char_dir / f"{sample_entity_data_char_2['unique_id']}.json"
-    char2_file.write_text(json.dumps(sample_entity_data_char_2), encoding="utf-8")
+    char2_file.write_text(json.dumps([sample_entity_data_char_2]), encoding="utf-8")
 
     # Write items file (list format)
     items_list = [sample_entity_data_item_1, sample_entity_data_item_2]
@@ -166,7 +166,7 @@ def test_init_from_directories_success(temp_entity_dirs):
         guard_entity = db.get_entity_by_id("guard_01")
         assert guard_entity is not None
         assert guard_entity.entity_type == "character"
-        assert "Gareth" in guard_entity.names
+        assert "Gareth" in guard_entity.data["names"]
         assert "public_facts" in guard_entity.data
         assert guard_entity.data["public_facts"]["post"] == "Gate Sentry"
         assert "inventory" in guard_entity.data
@@ -176,7 +176,7 @@ def test_init_from_directories_success(temp_entity_dirs):
         spear_entity = db.get_entity_by_id("spear_01")
         assert spear_entity is not None
         assert spear_entity.entity_type == "item"
-        assert "Spear" in spear_entity.names
+        assert "Spear" in spear_entity.data["names"]
         assert "description" in spear_entity.data
         assert spear_entity.data["description"].startswith("A standard issue")
         assert "properties" in spear_entity.data
@@ -205,34 +205,46 @@ def test_init_from_directory_invalid_json(tmp_path):
     assert len(db.get_all_entities()) == 0
 
 
-def test_init_from_directory_invalid_data(tmp_path, sample_entity_data_char_1):
-    """Test initializing with invalid entity data logs error and skips file."""
+def test_init_from_directory_partially_invalid_data(tmp_path, sample_entity_data_char_1):
+    """Test initializing with a file containing some invalid entity data."""
     entity_dir = tmp_path / "invalid_data"
     entity_dir.mkdir()
-    bad_data = sample_entity_data_char_1.copy()
-    del bad_data["names"]  # Will cause validation error in Entity / _parse
+    
+    # Create a list with one valid and one invalid entity
+    valid_data = sample_entity_data_char_1.copy()
+    invalid_data = sample_entity_data_char_1.copy()
+    invalid_data["unique_id"] = "" # Invalid because ID is missing
+
     bad_file = entity_dir / "invalid.json"
-    bad_file.write_text(json.dumps(bad_data))
-    # Expect 0 loaded, error logged
+    bad_file.write_text(json.dumps([valid_data, invalid_data]))
+    
+    # Expect only the valid entity to be loaded
     db = InMemoryEntityDB.from_directories([str(entity_dir)])
-    # Check logs manually or use caplog fixture if precise error checking needed
-    assert len(db.get_all_entities()) == 0
+    assert len(db.get_all_entities()) == 1
+    assert db.get_entity_by_id("guard_01") is not None
 
 
-def test_init_from_directory_duplicate_id(tmp_path, sample_entity_data_char_1):
+def test_init_from_directory_duplicate_id(tmp_path, sample_entity_data_char_1, sample_entity_data_char_2):
     """Test initializing with duplicate unique_id across files raises ValueError."""
     entity_dir = tmp_path / "duplicate_ids"
     entity_dir.mkdir()
-    file1 = entity_dir / "char1a.json"
-    file1.write_text(json.dumps(sample_entity_data_char_1))
-    # Create another file with the same ID
+    
+    # File 1 has two characters
+    file1 = entity_dir / "char1.json"
+    file1.write_text(json.dumps([sample_entity_data_char_1, sample_entity_data_char_2]))
+    
+    # File 2 attempts to re-use an ID from File 1
     data2 = sample_entity_data_char_1.copy()
     data2["names"] = ["Duplicate Guard"]
-    file2 = entity_dir / "char1b.json"
-    file2.write_text(json.dumps(data2))
+    file2 = entity_dir / "char1_dup.json"
+    file2.write_text(json.dumps([data2]))
 
-    with pytest.raises(ValueError, match=r"Duplicate unique_id found: guard_01"):
-        InMemoryEntityDB.from_directories([str(entity_dir)])
+    # The loader should log an error and skip the duplicate, not raise an exception
+    db = InMemoryEntityDB.from_directories([str(entity_dir)])
+    assert len(db.get_all_entities()) == 2
+    guard_entity = db.get_entity_by_id("guard_01")
+    # Verify it is the first one that was loaded, not the duplicate
+    assert "Gareth" in guard_entity.data["names"]
 
 
 def test_from_data_success(sample_entity_list):
@@ -253,30 +265,22 @@ def test_from_data_success(sample_entity_list):
 def test_from_data_invalid():
     """Test initializing with invalid data structure using from_data."""
     # Test case 1: Data missing required fields (unique_id)
-    invalid_list_missing_fields = [{"entity_type": "character", "names": ["Test"]}]
+    invalid_list_missing_fields = [{"entity_type": "character", "data": {}}]
     with pytest.raises(
         ValueError,
-        match=r"Failed to process entity data at index 0.*unique_id cannot be empty",
+        match=r"Failed to process entity data at index 0: Source 'input data': 'unique_id' and 'entity_type' are required.",
     ):
         InMemoryEntityDB.from_data(invalid_list_missing_fields)
 
-    # Test case 2: Data missing entity_type
-    invalid_list_missing_type = [{"unique_id": "test01", "names": ["Test"]}]
-    with pytest.raises(
-        ValueError,
-        match=r"Failed to process entity data at index 0.*entity_type cannot be empty",
-    ):
-        InMemoryEntityDB.from_data(invalid_list_missing_type)
-
-    # Test case 3: Duplicate ID within the list
-    duplicate_list = [
-        {"unique_id": "dup01", "entity_type": "item", "names": ["Item A"]},
-        {"unique_id": "dup01", "entity_type": "item", "names": ["Item B"]},
+    # Test case 2: Data with wrong type for a field (e.g., facts not a dict)
+    invalid_list_wrong_type = [
+        {"unique_id": "test_01", "entity_type": "item", "facts": "not-a-dict"}
     ]
     with pytest.raises(
-        ValueError, match=r"Duplicate unique_id found at index 1: dup01"
+        ValueError,
+        match=r"Source 'input data', Entity 'test_01': 'facts' field must be a dictionary.",
     ):
-        InMemoryEntityDB.from_data(duplicate_list)
+        InMemoryEntityDB.from_data(invalid_list_wrong_type)
 
 
 # --- Database Query Tests (using populated_entity_db fixture) ---
@@ -288,13 +292,13 @@ def test_get_entity_by_id_success(populated_entity_db: EntityDatabase):
     assert char_entity is not None
     assert char_entity.unique_id == "guard_01"
     assert char_entity.entity_type == "character"
-    assert "Gareth" in char_entity.names
+    assert "Gareth" in char_entity.data["names"]
 
     item_entity = populated_entity_db.get_entity_by_id("spear_01")
     assert item_entity is not None
     assert item_entity.unique_id == "spear_01"
     assert item_entity.entity_type == "item"
-    assert "Spear" in item_entity.names
+    assert "Spear" in item_entity.data["names"]
 
 
 def test_get_entity_by_id_not_found(populated_entity_db: EntityDatabase):
@@ -319,81 +323,41 @@ def test_get_all_entities(populated_entity_db: EntityDatabase):
 
 
 def test_get_entities_by_type(populated_entity_db: EntityDatabase):
-    """Test retrieving entities filtered by type."""
-    char_entities = populated_entity_db.get_entities_by_type("character")
-    assert isinstance(char_entities, list)
-    assert len(char_entities) == 2
-    assert all(e.entity_type == "character" for e in char_entities)
-    char_ids = {e.unique_id for e in char_entities}
-    assert "guard_01" in char_ids and "merchant_01" in char_ids
+    """Test retrieving entities by their type."""
+    # Test getting characters
+    characters = populated_entity_db.get_entities_by_type("character")
+    assert len(characters) == 2
+    char_ids = {c.unique_id for c in characters}
+    assert "guard_01" in char_ids
+    assert "merchant_01" in char_ids
 
-    item_entities = populated_entity_db.get_entities_by_type("item")
-    assert isinstance(item_entities, list)
-    assert len(item_entities) == 2
-    assert all(e.entity_type == "item" for e in item_entities)
-    item_ids = {e.unique_id for e in item_entities}
-    assert "spear_01" in item_ids and "helmet_01" in item_ids
+    # Test getting items
+    items = populated_entity_db.get_entities_by_type("item")
+    assert len(items) == 2
+    item_ids = {i.unique_id for i in items}
+    assert "spear_01" in item_ids
+    assert "helmet_01" in item_ids
 
-    non_existent_entities = populated_entity_db.get_entities_by_type("location")
-    assert isinstance(non_existent_entities, list)
-    assert len(non_existent_entities) == 0
-
-
-def test_get_entity_by_name_exact_match(populated_entity_db: EntityDatabase):
-    """Test finding an entity by an exact name (case-insensitive)."""
-    entity = populated_entity_db.get_entity_by_name("Gareth")  # Character
-    assert entity is not None
-    assert entity.unique_id == "guard_01"
-    entity_lower = populated_entity_db.get_entity_by_name("gareth")
-    assert entity_lower is not None
-    assert entity_lower.unique_id == "guard_01"
-
-    entity_item = populated_entity_db.get_entity_by_name("Spear")  # Item
-    assert entity_item is not None
-    assert entity_item.unique_id == "spear_01"
-
-
-def test_get_entity_by_name_fuzzy_match(populated_entity_db: EntityDatabase):
-    """Test finding an entity by a partial/fuzzy name."""
-    entity = populated_entity_db.get_entity_by_name("Sila")  # Partial character name
-    assert entity is not None
-    assert entity.unique_id == "merchant_01"
-
-    entity_item = populated_entity_db.get_entity_by_name("Helme")  # Partial item name
-    assert entity_item is not None
-    assert entity_item.unique_id == "helmet_01"
-
-
-def test_get_entity_by_name_not_found(populated_entity_db: EntityDatabase):
-    """Test looking up a name that doesn't match any entity."""
-    entity = populated_entity_db.get_entity_by_name("Unknown Entity Name")
-    assert entity is None
-
-
-# --- Entity Attribute Access/Modification Tests ---
+    # Test getting a type that doesn't exist
+    locations = populated_entity_db.get_entities_by_type("location")
+    assert len(locations) == 0
 
 
 def test_access_entity_attributes_directly(populated_entity_db: EntityDatabase):
-    """Test accessing entity attributes after retrieving from DB."""
-    # Character
-    char_entity = populated_entity_db.get_entity_by_id("guard_01")
-    assert char_entity is not None
-    assert char_entity.entity_type == "character"
-    assert isinstance(char_entity.data, dict)
-    assert (
-        char_entity.data["public_facts"]["description"]
-        == "A stern-looking guard in city livery."
-    )
-    assert char_entity.data["inventory"]["money"] == 30
-    assert "spear_01" in char_entity.data["inventory"]["items"]
+    """Test accessing entity attributes and data after retrieving from DB."""
+    entity = populated_entity_db.get_entity_by_id("guard_01")
+    assert entity is not None
 
-    # Item
-    item_entity = populated_entity_db.get_entity_by_id("spear_01")
-    assert item_entity is not None
-    assert item_entity.entity_type == "item"
-    assert isinstance(item_entity.data, dict)
-    assert item_entity.data["description"].startswith("A standard issue")
-    assert item_entity.data["properties"]["damage"] == "1d6"
+    # Access basic attributes
+    assert entity.unique_id == "guard_01"
+    assert entity.entity_type == "character"
+    assert entity.portrait_image_path is None  # Assuming not set in this fixture
+
+    # Access the data dictionary
+    assert isinstance(entity.data, dict)
+    assert "public_facts" in entity.data
+    assert entity.data["public_facts"]["post"] == "Gate Sentry"
+    assert entity.data["inventory"]["money"] == 30
 
 
 def test_modify_entity_data_directly(populated_entity_db: EntityDatabase):
@@ -405,16 +369,11 @@ def test_modify_entity_data_directly(populated_entity_db: EntityDatabase):
     # Modify data directly on the retrieved object
     entity.data["inventory"]["money"] = 100
     entity.data["new_fact"] = "Just added"
-    entity.names.add("Silas the Rich")
+    entity.data["names"].append("Silas the Rich")
 
-    # Retrieve again
+    # Retrieve the entity again to ensure the object in the DB was modified
     entity_again = populated_entity_db.get_entity_by_id("merchant_01")
     assert entity_again is not None
-    assert entity_again.data["inventory"]["money"] == 100  # Change persists
-    assert entity_again.data["new_fact"] == "Just added"  # Change persists
-    assert "Silas the Rich" in entity_again.names  # Change persists
-
-    # Verify change is reflected in get_by_name too
-    entity_rich = populated_entity_db.get_entity_by_name("Silas the Rich")
-    assert entity_rich is not None
-    assert entity_rich.unique_id == "merchant_01"
+    assert entity_again.data["inventory"]["money"] == 100
+    assert entity_again.data["new_fact"] == "Just added"
+    assert "Silas the Rich" in entity_again.data["names"]

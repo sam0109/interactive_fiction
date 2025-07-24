@@ -1,0 +1,10 @@
+[
+    {
+        "unique_id": "test_room_01",
+        "entity_type": "location",
+        "data": {
+            "names": ["Test Room"],
+            "description": "You are in a simple test room. It is quite bare."
+        }
+    }
+] 

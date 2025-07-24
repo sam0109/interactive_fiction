@@ -1,0 +1,20 @@
+[
+    {
+        "unique_id": "goblet_01",
+        "entity_type": "item",
+        "data": {
+            "names": ["goblet", "golden goblet"],
+            "description": "A beautiful golden goblet, intricately engraved.",
+            "location_id": "test_room_01"
+        }
+    },
+    {
+        "unique_id": "spoon_01",
+        "entity_type": "item",
+        "data": {
+            "names": ["spoon", "silver spoon"],
+            "description": "A simple silver spoon, slightly tarnished.",
+            "location_id": "test_room_01"
+        }
+    }
+] 

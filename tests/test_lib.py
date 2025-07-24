@@ -64,6 +64,14 @@ class TestHarness:
         _shutdown_server()
         print("\n🛑 Server and browser have been shut down.")
 
+    def set_entity_data_dirs(self, data_dirs: list[str]):
+        """Tells the running app to re-initialize its database from a new set of directories."""
+        response = requests.post(f"{self.server_url}reinitialize_db", json={"data_dirs": data_dirs})
+        if response.status_code == 200:
+            print(f"✔️ DB re-initialized with data from: {data_dirs}")
+        else:
+            print(f"❌ Failed to re-initialize DB. Status: {response.status_code}, Response: {response.text}")
+
     def set_location(self, location_id: str):
         """Sets the player's location."""
         requests.post(f"{self.server_url}set_location", json={"location_id": location_id})

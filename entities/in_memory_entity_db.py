@@ -67,19 +67,32 @@ class InMemoryEntityDB(EntityDatabase):
 
                             # Add source file for better error messages
                             entity_data["_source_file"] = filepath
-                            entity = db_instance._parse_entity_data(entity_data)
 
-                            if entity.unique_id in processed_ids:
-                                raise ValueError(
-                                    f"Duplicate unique_id found: {entity.unique_id} from file {filepath}"
+                            # Wrap entity parsing in a try-except block
+                            try:
+                                entity = db_instance._parse_entity_data(entity_data)
+
+                                if not entity.unique_id:
+                                    raise ValueError("Parsed entity has an empty unique_id.")
+                                    
+                                if entity.unique_id in processed_ids:
+                                    raise ValueError(
+                                        f"Duplicate unique_id found: {entity.unique_id} from file {filepath}"
+                                    )
+                                processed_ids.add(entity.unique_id)
+                                db_instance._add_entity(entity)
+                                loaded_count += 1  # Increment for each entity in the list
+                            
+                            except (ValueError, TypeError) as e:
+                                # Log the error for the specific entity and continue
+                                logging.error(
+                                    "Skipping entity in %s due to error: %s", filepath, e
                                 )
-                            processed_ids.add(entity.unique_id)
-                            db_instance._add_entity(entity)
-                            loaded_count += 1  # Increment for each entity in the list
+                                # Do not add the file to error_files, as other entities might be valid
 
                     except (json.JSONDecodeError, ValueError, TypeError) as e:
                         logging.error(
-                            "Failed to load entities from %s: %s", filepath, e
+                            "Failed to load or parse top-level list from %s: %s", filepath, e
                         )
                         error_files.append(filepath)
                         # Continue loading other files
@@ -205,3 +218,10 @@ class InMemoryEntityDB(EntityDatabase):
     def get_entities_by_type(self, entity_type: str) -> List[Entity]:
         """Returns a list of all entities of a given type."""
         return [e for e in self._entities.values() if e.entity_type == entity_type]
+
+    def get_entities_by_data_property(self, key: str, value: Any) -> List[Entity]:
+        """
+        Returns a list of all entities that have a matching key-value pair
+        in their `data` dictionary.
+        """
+        return [e for e in self._entities.values() if e.data.get(key) == value]
